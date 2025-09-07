@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { Navigation } from './Navigation';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Button } from './ui/button';
-import { Calendar, Clock, Award, Star, ArrowRight, UserPlus, Users, MapPin, Mail, Phone, Shield, Leaf, Sparkles } from 'lucide-react';
-import { Logo } from './Logo';
+import { Calendar, Clock, Award, Star, ArrowRight, Users, MapPin, Mail, Phone, Shield, Leaf, Sparkles } from 'lucide-react';
 import { useRef } from 'react';
 import {
   Carousel,
@@ -14,13 +13,13 @@ import {
   CarouselPrevious
 } from './ui/carousel';
 import { Card, CardContent } from './ui/card';
-import { CURRENCY_SYMBOL, formatPriceWithPlus } from './utils/currency';
+import { formatPriceWithPlus } from './utils/currency';
 
 export const LandingPage = () => {
   // Refs for scrolling
-  const topRef = useRef(null);
-  const contactRef = useRef(null);
-  const aboutRef = useRef(null);
+  const topRef = useRef<HTMLDivElement | null>(null);
+  const contactRef = useRef<HTMLDivElement | null>(null);
+  const aboutRef = useRef<HTMLDivElement | null>(null);
 
   // Scroll functions
   const scrollToTop = () => {
@@ -107,23 +106,7 @@ export const LandingPage = () => {
     },
   ];
 
-  // Sample testimonials
-  const testimonials = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      role: "Regular Customer",
-      comment: "The best skin treatments I've ever had! The staff is incredibly talented and knowledgeable.",
-      avatar: "/public/services/hydrating-skin-therapy.jpg"
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      role: "New Client",
-      comment: "I was amazed by the attention to detail and personalized dermatological care. Will definitely come back!",
-      avatar: "/public/services/skin-analysis-consultation.jpg"
-    }
-  ];
+  // Testimonials omitted
 
   return (
     <div className="min-h-screen flex flex-col" ref={topRef}>

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
-import { Menu, Bell, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Menu, Bell, ChevronLeft, ChevronRight, LayoutDashboard, Calendar, ClipboardList, CreditCard, User as UserIcon, MessageSquare, HelpCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useAuth } from './context/AuthContext';
 
 export const DashboardLayout = () => {
+  const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
@@ -52,6 +54,16 @@ export const DashboardLayout = () => {
   // Get the current page title
   const pageTitle = getCurrentPageTitle();
 
+  const navItems = [
+    { title: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+    { title: 'Appointments', href: '/dashboard/appointments', icon: <Calendar className="h-5 w-5" /> },
+    { title: 'Services', href: '/dashboard/services', icon: <ClipboardList className="h-5 w-5" /> },
+    { title: 'Payments', href: '/dashboard/payments', icon: <CreditCard className="h-5 w-5" /> },
+    { title: 'Profile', href: '/dashboard/profile', icon: <UserIcon className="h-5 w-5" /> },
+    { title: 'Messages', href: '/dashboard/messages', icon: <MessageSquare className="h-5 w-5" /> },
+    { title: 'Help', href: '/dashboard/help', icon: <HelpCircle className="h-5 w-5" /> },
+  ];
+
   return (
     <div className="h-screen flex overflow-hidden bg-background">
       {/* Backdrop for mobile when sidebar is open */}
@@ -65,9 +77,9 @@ export const DashboardLayout = () => {
 
       {/* Sidebar */}
       <Sidebar 
-        isOpen={sidebarOpen} 
-        closeSidebar={() => setSidebarOpen(false)} 
-        isMobile={isMobile}
+        navItems={navItems}
+        onLogout={logout}
+        userRole="client"
       />
       
       {/* Main content */}

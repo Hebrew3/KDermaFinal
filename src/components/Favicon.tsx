@@ -7,11 +7,14 @@ interface FaviconProps {
 export const Favicon = ({ title = "DERMA" }: FaviconProps) => {
   useEffect(() => {
     // Update favicon
-    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    const existingLink = document.querySelector<HTMLLinkElement>("link[rel*='icon']");
+    const link = existingLink ?? (document.createElement('link') as HTMLLinkElement);
     link.type = 'image/jpg';
     link.rel = 'shortcut icon';
     link.href = '/imports/derma-logo.jpg';
-    document.getElementsByTagName('head')[0].appendChild(link);
+    if (!existingLink) {
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
     
     // Update page title if provided
     if (title) {

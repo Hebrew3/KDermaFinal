@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Plus, Filter } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Plus, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Calendar } from '../ui/calendar';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../ui/dialog';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { Select } from '../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
@@ -90,6 +90,7 @@ export const StaffSchedulePage = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedView, setSelectedView] = useState('day');
   const [selectedStatus, setSelectedStatus] = useState('All');
+  const [timeOffReason, setTimeOffReason] = useState('vacation');
   
   // Format the currently selected date
   const formattedDate = date ? date.toLocaleDateString('en-US', {
@@ -139,11 +140,16 @@ export const StaffSchedulePage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="time-off-reason">Reason</Label>
-                  <Select id="time-off-reason">
-                    <option value="vacation">Vacation</option>
-                    <option value="sick">Sick Leave</option>
-                    <option value="personal">Personal Day</option>
-                    <option value="other">Other</option>
+                  <Select value={timeOffReason} onValueChange={setTimeOffReason}>
+                    <SelectTrigger id="time-off-reason">
+                      <SelectValue placeholder="Select reason" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vacation">Vacation</SelectItem>
+                      <SelectItem value="sick">Sick Leave</SelectItem>
+                      <SelectItem value="personal">Personal Day</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -265,12 +271,17 @@ export const StaffSchedulePage = () => {
                 <Filter className="text-muted-foreground h-4 w-4" />
                 <Select 
                   value={selectedStatus} 
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedStatus(e.target.value)}
+                  onValueChange={setSelectedStatus}
                 >
-                  <option value="All">All Status</option>
-                  <option value="Confirmed">Confirmed</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Cancelled">Cancelled</option>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Status</SelectItem>
+                    <SelectItem value="Confirmed">Confirmed</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
             </div>
