@@ -1,22 +1,23 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { NativeSelect } from '../ui/native-select';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   PlusCircle, 
   Send, 
   Paperclip, 
   MoreVertical,
-  Clock,
   CheckCheck,
   Bell,
   FileQuestion,
   Calendar,
   UserPlus,
-  CalendarDays
+  
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Label } from '../ui/label';
@@ -28,10 +29,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '../ui/dropdown-menu';
-import { Badge } from '../ui/badge';
 
-// Sample messages data
-const conversations = [
+// Initial conversations with embedded messages
+const initialConversations = [
   {
     id: 1,
     user: {
@@ -44,12 +44,18 @@ const conversations = [
       text: 'Your appointment has been confirmed for Tuesday at 10 AM.',
       time: '10:25 AM',
       unread: true
-    }
+    },
+    messages: [
+      { id: 1, sender: 'staff', text: 'Hello Emma! I hope you are doing well today.', time: '10:20 AM' },
+      { id: 2, sender: 'client', text: 'Hi Dr. Johnson, I am doing great. I wanted to confirm my appointment for next week.', time: '10:22 AM' },
+      { id: 3, sender: 'staff', text: 'Of course! I can confirm that your appointment is scheduled for Tuesday, May 15th at 10:00 AM for an Advanced Facial Treatment.', time: '10:24 AM' },
+      { id: 4, sender: 'staff', text: 'Is there anything specific you would like us to address during your appointment?', time: '10:25 AM' }
+    ]
   },
   {
     id: 2,
     user: {
-      name: 'Sarah Williams',
+      name: 'Veron',
       role: 'Esthetician',
       avatar: 'https://randomuser.me/api/portraits/women/6.jpg',
       status: 'offline'
@@ -58,7 +64,10 @@ const conversations = [
       text: 'How are you feeling after your treatment yesterday?',
       time: '9:42 AM',
       unread: false
-    }
+    },
+    messages: [
+      { id: 1, sender: 'staff', text: 'How are you feeling after your treatment yesterday?', time: '9:42 AM' }
+    ]
   },
   {
     id: 3,
@@ -72,40 +81,12 @@ const conversations = [
       text: 'Thank you for your inquiry. We will get back to you shortly.',
       time: 'Yesterday',
       unread: false
-    }
+    },
+    messages: [
+      { id: 1, sender: 'staff', text: 'Thank you for your inquiry. We will get back to you shortly.', time: 'Yesterday' }
+    ]
   }
 ];
-
-// Sample active conversation messages
-const activeConversation = {
-  user: conversations[0].user,
-  messages: [
-    {
-      id: 1,
-      sender: 'staff',
-      text: 'Hello Emma! I hope you are doing well today.',
-      time: '10:20 AM'
-    },
-    {
-      id: 2,
-      sender: 'client',
-      text: 'Hi Dr. Johnson, I am doing great. I wanted to confirm my appointment for next week.',
-      time: '10:22 AM'
-    },
-    {
-      id: 3,
-      sender: 'staff',
-      text: 'Of course! I can confirm that your appointment is scheduled for Tuesday, May 15th at 10:00 AM for an Advanced Facial Treatment.',
-      time: '10:24 AM'
-    },
-    {
-      id: 4,
-      sender: 'staff',
-      text: 'Is there anything specific you would like us to address during your appointment?',
-      time: '10:25 AM'
-    }
-  ]
-};
 
 // Sample quick questions for new message dialog
 const quickQuestions = [
@@ -116,22 +97,79 @@ const quickQuestions = [
 ];
 
 export const ClientMessagesPage = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [showNewMessageDialog, setShowNewMessageDialog] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [convos, setConvos] = useState(initialConversations);
+  const [selectedConversationId, setSelectedConversationId] = useState<number>(initialConversations[0].id);
+  const [newMessageText, setNewMessageText] = useState('');
+  const [selectedRecipientId, setSelectedRecipientId] = useState<string | number>(initialConversations[0].id);
 
   // Filter conversations based on search query
-  const filteredConversations = conversations.filter(convo => 
+  const filteredConversations = convos.filter(convo => 
     convo.user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSendMessage = () => {
-    if (messageText.trim()) {
-      // Here you would typically send the message to an API
-      // For now, just clear the input
-      setMessageText('');
-    }
+    const text = messageText.trim();
+    if (!text) return;
+    const now = new Date();
+    setConvos(prev => prev.map(c => {
+      if (c.id !== selectedConversationId) return c;
+      const nextId = c.messages.length ? c.messages[c.messages.length - 1].id + 1 : 1;
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const updated = {
+        ...c,
+        messages: [...c.messages, { id: nextId, sender: 'client', text, time }],
+        lastMessage: { text, time, unread: false }
+      };
+      return updated;
+    }));
+    setMessageText('');
   };
+
+  const handleDialogSend = () => {
+    const text = newMessageText.trim();
+    if (!text) {
+      setShowNewMessageDialog(false);
+      return;
+    }
+    const targetId = Number(selectedRecipientId);
+    const now = new Date();
+    setConvos(prev => prev.map(c => {
+      if (c.id !== targetId) return c;
+      const nextId = c.messages.length ? c.messages[c.messages.length - 1].id + 1 : 1;
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return {
+        ...c,
+        messages: [...c.messages, { id: nextId, sender: 'client', text, time }],
+        lastMessage: { text, time, unread: false }
+      };
+    }));
+    setSelectedConversationId(targetId);
+    setNewMessageText('');
+    setShowNewMessageDialog(false);
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex-1 p-6 md:p-8 flex items-center justify-center">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <div className="text-xl font-semibold">Please log in</div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-muted-foreground">You need to be logged in to view and send messages.</p>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/login')}>Go to Login</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6 p-6 md:p-8">
@@ -162,8 +200,13 @@ export const ClientMessagesPage = () => {
               <div
                 key={convo.id}
                 className={`flex items-center gap-3 p-3 rounded-md cursor-pointer hover:bg-muted/50 ${
-                  convo.id === 1 ? 'bg-muted' : ''
+                  convo.id === selectedConversationId ? 'bg-muted' : ''
                 }`}
+                onClick={() => {
+                  setSelectedConversationId(convo.id);
+                  // mark as read
+                  setConvos(prev => prev.map(c => c.id === convo.id ? { ...c, lastMessage: { ...c.lastMessage, unread: false } } : c));
+                }}
               >
                 <div className="relative">
                   <ImageWithFallback
@@ -208,14 +251,14 @@ export const ClientMessagesPage = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <ImageWithFallback
-                  src={activeConversation.user.avatar}
-                  alt={activeConversation.user.name}
+                  src={convos.find(c => c.id === selectedConversationId)?.user.avatar || ''}
+                  alt={convos.find(c => c.id === selectedConversationId)?.user.name || ''}
                   className="h-12 w-12 rounded-full object-cover"
                 />
                 <div>
-                  <h3 className="font-medium">{activeConversation.user.name}</h3>
+                  <h3 className="font-medium">{convos.find(c => c.id === selectedConversationId)?.user.name}</h3>
                   <p className="text-xs text-muted-foreground">
-                    {activeConversation.user.status === 'online' ? (
+                    {convos.find(c => c.id === selectedConversationId)?.user.status === 'online' ? (
                       <span className="flex items-center">
                         <span className="h-2 w-2 rounded-full bg-green-500 mr-1" />
                         Online
@@ -251,7 +294,7 @@ export const ClientMessagesPage = () => {
             </div>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-            {activeConversation.messages.map((message) => (
+            {convos.find(c => c.id === selectedConversationId)?.messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.sender === 'staff' ? 'justify-start' : 'justify-end'}`}
@@ -283,8 +326,9 @@ export const ClientMessagesPage = () => {
                 className="flex-1"
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
                     handleSendMessage();
                   }
                 }}
@@ -367,14 +411,16 @@ export const ClientMessagesPage = () => {
               <Label htmlFor="recipient">Recipient</Label>
               <NativeSelect 
                 id="recipient" 
-                defaultValue=""
+                value={String(selectedRecipientId)}
+                onChange={(e) => setSelectedRecipientId(e.target.value)}
               >
                 <option value="">Select a recipient...</option>
-                {conversations.map(convo => (
+                {convos.map(convo => (
                   <option key={convo.id} value={convo.id}>{convo.user.name} ({convo.user.role})</option>
                 ))}
                 <option value="support">DERMA Support</option>
               </NativeSelect>
+              
             </div>
             
             <div className="space-y-2">
@@ -383,6 +429,8 @@ export const ClientMessagesPage = () => {
                 id="message" 
                 placeholder="Type your message here..." 
                 className="h-32"
+                value={newMessageText}
+                onChange={(e) => setNewMessageText(e.target.value)}
               />
             </div>
             
@@ -394,6 +442,7 @@ export const ClientMessagesPage = () => {
                     key={index} 
                     variant="outline" 
                     className="justify-start h-auto py-2 px-3 text-left"
+                    onClick={() => setNewMessageText(question)}
                   >
                     {question}
                   </Button>
@@ -405,7 +454,7 @@ export const ClientMessagesPage = () => {
             <Button variant="outline" onClick={() => setShowNewMessageDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={() => setShowNewMessageDialog(false)}>
+            <Button onClick={handleDialogSend}>
               Send Message
             </Button>
           </DialogFooter>

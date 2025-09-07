@@ -35,6 +35,22 @@ const sampleUsers = [
     role: 'admin' as UserRole,
     avatar: userPicture,
   },
+  {
+    id: '2',
+    name: 'Staff User',
+    email: 'staff@staff',
+    password: 'staff',
+    role: 'staff' as UserRole,
+    avatar: userPicture,
+  },
+  {
+    id: '3',
+    name: 'Client User',
+    email: 'client@client',
+    password: 'client',
+    role: 'client' as UserRole,
+    avatar: userPicture,
+  },
 ];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

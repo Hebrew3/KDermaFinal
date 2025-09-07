@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -14,8 +14,6 @@ import {
   Phone,
   ExternalLink,
   Play,
-  ChevronDown,
-  ChevronUp
 } from 'lucide-react';
 import {
   Accordion,

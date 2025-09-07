@@ -1,15 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import { 
   SearchIcon, 
   PlusCircle, 
-  Filter, 
   RefreshCw, 
   AlertCircle, 
   CheckCircle2, 
   Pencil, 
   Trash2, 
-  BarChart4, 
   Package,
   Download,
   Upload,
@@ -24,7 +22,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
 } from "../ui/dialog";
 import { 
   Select,
@@ -240,6 +237,66 @@ export const AdminInventoryPage = () => {
     return matchesSearch && matchesCategory && matchesStatus && matchesLocation;
   });
 
+  // Export currently filtered products to CSV
+  const handleExportProducts = () => {
+    const headers = [
+      "ID",
+      "Name",
+      "SKU",
+      "Category",
+      "Price",
+      "Cost",
+      "StockLevel",
+      "MinStockLevel",
+      "Supplier",
+      "LastRestock",
+      "ExpiryDate",
+      "Status",
+      "Location"
+    ];
+
+    const escapeCsv = (value: unknown): string => {
+      const text = value === undefined || value === null ? "" : String(value);
+      // Wrap with quotes and escape inner quotes
+      const needsQuoting = /[",\n]/.test(text);
+      const escaped = text.replace(/"/g, '""');
+      return needsQuoting ? `"${escaped}"` : escaped;
+    };
+
+    const rows = filteredProducts.map((p) => [
+      p.id,
+      p.name,
+      p.sku,
+      p.category,
+      typeof p.price === "number" ? p.price.toFixed(2) : p.price,
+      typeof p.cost === "number" ? p.cost.toFixed(2) : p.cost,
+      p.stockLevel,
+      p.minStockLevel,
+      p.supplier,
+      p.lastRestock,
+      p.expiryDate,
+      p.status,
+      p.location,
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCsv).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const now = new Date();
+    const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
+    const fileName = `inventory_export_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.csv`;
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Count products by status
   const activeCount = inventoryProducts.filter(p => p.status === "active").length;
   const lowStockCount = inventoryProducts.filter(p => p.status === "low").length;
@@ -273,7 +330,7 @@ export const AdminInventoryPage = () => {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportProducts}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>

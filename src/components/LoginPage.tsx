@@ -48,7 +48,7 @@ export const LoginPage = () => {
         } else if (formData.email.toLowerCase() === 'staff@staff') {
           navigate("/staff");
         } else {
-          navigate("/client");
+          navigate("/dashboard");
         }
       } else {
         setError("Invalid email or password. Please try again.");
@@ -148,6 +148,8 @@ export const LoginPage = () => {
                 <p className="text-sm font-medium mb-2">Demo Credentials:</p>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <p>Admin: admin@admin / admin</p>
+                  <p>Staff: staff@staff / staff</p>
+                  <p>Client: client@client / client</p>
                 </div>
               </div>
             </CardContent>
