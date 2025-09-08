@@ -31,8 +31,8 @@ import { Switch } from '../ui/switch';
 
 // Sample user data with fixed avatar URL
 const userData = {
-  name: 'Emma Wilson',
-  email: 'emma.wilson@example.com',
+  name: 'Daniel',
+  email: 'daniel@daniel',
   phone: '(555) 123-4567',
   avatar: '/services/hydrating-skin-therapy.jpg', // Use local image instead of external URL
   joinDate: '2024-01-15',

@@ -4,15 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Check, 
   ChevronRight, 
-  User, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  Heart, 
   Clock, 
   ArrowRight, 
   Loader2, 
-  Lock, 
   Eye, 
   EyeOff 
 } from 'lucide-react';
@@ -26,6 +20,7 @@ import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useAuth } from './context/AuthContext';
 
 // Service type definition
 interface Service {
@@ -123,6 +118,7 @@ const services: Service[] = [
 
 export const SignupPage = () => {
   const navigate = useNavigate();
+  const { register, isLoading } = useAuth();
   const [currentStep, setCurrentStep] = useState<SignupStep>('personal');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -183,9 +179,9 @@ export const SignupPage = () => {
     updateFormData('skinType', value);
   };
 
-  const handleContactPreferenceChange = (value: string) => {
-    updateFormData('contactPreference', value);
-  };
+  // const handleContactPreferenceChange = (value: string) => {
+  //   updateFormData('contactPreference', value);
+  // };
   
   const goToNextStep = () => {
     if (currentStep === 'personal') setCurrentStep('services');
@@ -297,19 +293,22 @@ export const SignupPage = () => {
     setIsSubmitting(true);
     
     try {
-      // In a real application, we would send the data to a server here
-      console.log("Form submitted:", formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Show success message
-      toast.success("Registration successful! Redirecting to services...");
-      
-      // Navigate to services page after a short delay
-      setTimeout(() => {
-        navigate(`/client`, { state: { selectedServices: formData.selectedServices } });
-      }, 1000);
+      const result = await register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        role: 'client',
+      });
+
+      if (!result.success) {
+        toast.error(result.message || 'Registration failed');
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast.success("Registration successful! Redirecting to your dashboard...");
+      navigate(`/client`, { state: { selectedServices: formData.selectedServices } });
     } catch (error) {
       toast.error("There was an error registering your account. Please try again.");
       console.error("Registration error:", error);
@@ -521,14 +520,12 @@ export const SignupPage = () => {
   // Render services selection with improved UI
   const renderServicesSelection = () => {
     // Direct handler instead of using SafeCheckbox (to avoid the infinite loop)
-    const handleServiceCheckboxChange = (serviceId: string, isChecked: boolean) => {
-      // Only update if the state is actually changing
-      const isCurrentlySelected = formData.selectedServices.includes(serviceId);
-      
-      if (isChecked !== isCurrentlySelected) {
-        handleServiceToggle(serviceId);
-      }
-    };
+    // const handleServiceCheckboxChange = (serviceId: string, isChecked: boolean) => {
+    //   const isCurrentlySelected = formData.selectedServices.includes(serviceId);
+    //   if (isChecked !== isCurrentlySelected) {
+    //     handleServiceToggle(serviceId);
+    //   }
+    // };
     
     return (
       <div>
@@ -712,7 +709,7 @@ export const SignupPage = () => {
           <Button 
             type="submit" 
             className="bg-primary hover:bg-primary/90 gap-2"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading}
           >
             {isSubmitting ? (
               <>

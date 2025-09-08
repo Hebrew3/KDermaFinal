@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Calendar } from './ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from './ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Separator } from './ui/separator';
 import { Input } from './ui/input';
@@ -14,7 +14,15 @@ import { format, addDays } from 'date-fns';
 import { Search, Calendar as CalendarIcon, Plus, Filter, Clock, User } from 'lucide-react';
 import { toast } from "sonner";
 
-// Mock data for appointments
+// Practitioners directory with specialization and availability
+const practitioners = [
+  { name: 'Dr. Sarah Williams', specialization: 'Dermatology', available: false }, // Simulate emergency unavailability
+  { name: 'Dr. Robert Chen', specialization: 'Dermatology', available: true },
+  { name: 'Dr. Anna Lopez', specialization: 'Aesthetics', available: true },
+  { name: 'Dr. David Kim', specialization: 'Aesthetics', available: true }
+];
+
+// Mock data for appointments (extended with staffUnavailable for emergency flow)
 const mockAppointments = [
   { 
     id: 1, 
@@ -25,7 +33,8 @@ const mockAppointments = [
     duration: 30,
     status: 'confirmed',
     notes: 'First time client, consultation for acne treatment',
-    practitioner: 'Dr. Sarah Williams'
+    practitioner: 'Dr. Sarah Williams',
+    staffUnavailable: true
   },
   { 
     id: 2, 
@@ -36,7 +45,8 @@ const mockAppointments = [
     duration: 45,
     status: 'confirmed',
     notes: 'Follow-up treatment',
-    practitioner: 'Dr. Sarah Williams'
+    practitioner: 'Dr. Sarah Williams',
+    staffUnavailable: false
   },
   { 
     id: 3, 
@@ -47,7 +57,8 @@ const mockAppointments = [
     duration: 60,
     status: 'pending',
     notes: 'Sensitive skin, check medical history',
-    practitioner: 'Dr. Robert Chen'
+    practitioner: 'Dr. Robert Chen',
+    staffUnavailable: false
   },
   { 
     id: 4, 
@@ -58,7 +69,8 @@ const mockAppointments = [
     duration: 45,
     status: 'confirmed',
     notes: 'Session 3 of 6',
-    practitioner: 'Dr. Anna Lopez'
+    practitioner: 'Dr. Anna Lopez',
+    staffUnavailable: false
   },
   { 
     id: 5, 
@@ -69,7 +81,8 @@ const mockAppointments = [
     duration: 30,
     status: 'cancelled',
     notes: 'Postponed from last week',
-    practitioner: 'Dr. Robert Chen'
+    practitioner: 'Dr. Robert Chen',
+    staffUnavailable: false
   }
 ];
 
@@ -86,13 +99,11 @@ const serviceOptions = [
   'Skin Tag Removal'
 ];
 
-// Practitioners
-const practitioners = [
-  'Dr. Sarah Williams',
-  'Dr. Robert Chen',
-  'Dr. Anna Lopez',
-  'Dr. David Kim'
-];
+// Helper to get practitioner's specialization
+const getPractitionerSpecialization = (name: string) => {
+  const p = practitioners.find(pr => pr.name === name);
+  return p ? p.specialization : '';
+};
 
 export const AppointmentsPage = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -101,9 +112,11 @@ export const AppointmentsPage = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [appointments, setAppointments] = useState<any[]>(mockAppointments);
+  const [selectedNewPractitioner, setSelectedNewPractitioner] = useState<string>('');
 
   // Filter appointments based on selected date and search query
-  const filteredAppointments = mockAppointments.filter(appointment => {
+  const filteredAppointments = appointments.filter(appointment => {
     const dateMatches = format(appointment.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
     const searchMatches = appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          appointment.service.toLowerCase().includes(searchQuery.toLowerCase());
@@ -123,6 +136,24 @@ export const AppointmentsPage = () => {
   const showAppointmentDetails = (appointment: any) => {
     setSelectedAppointment(appointment);
     setIsDetailsDialogOpen(true);
+    setSelectedNewPractitioner('');
+  };
+ 
+  // Cancel treatment handler
+  const handleCancelTreatment = (appointmentId: number) => {
+    setAppointments(prev => prev.map(a => a.id === appointmentId ? { ...a, status: 'cancelled', staffUnavailable: false } : a));
+    setSelectedAppointment((prev: any) => prev ? { ...prev, status: 'cancelled', staffUnavailable: false } : prev);
+    toast.success('Appointment cancelled.');
+    setIsDetailsDialogOpen(false);
+  };
+
+  // Reassign treatment handler
+  const handleConfirmReassign = (appointmentId: number) => {
+    if (!selectedNewPractitioner) return;
+    setAppointments(prev => prev.map(a => a.id === appointmentId ? { ...a, practitioner: selectedNewPractitioner, staffUnavailable: false } : a));
+    setSelectedAppointment((prev: any) => prev ? { ...prev, practitioner: selectedNewPractitioner, staffUnavailable: false } : prev);
+    toast.success('Appointment reassigned to another available staff.');
+    setSelectedNewPractitioner('');
   };
   
   // Generate time slots in 15-minute intervals
@@ -380,9 +411,9 @@ export const AppointmentsPage = () => {
                     <SelectValue placeholder="Select practitioner" />
                   </SelectTrigger>
                   <SelectContent>
-                    {practitioners.map((practitioner, index) => (
-                      <SelectItem key={index} value={practitioner}>
-                        {practitioner}
+                    {practitioners.map((p) => (
+                      <SelectItem key={p.name} value={p.name}>
+                        {p.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -420,6 +451,31 @@ export const AppointmentsPage = () => {
             </DialogHeader>
             
             <div className="py-4">
+              {selectedAppointment.staffUnavailable && (
+                <div className="mb-4 border border-amber-300 bg-amber-50 text-amber-900 rounded-md p-3">
+                  <div className="text-sm font-medium">Assigned staff is currently unavailable due to an emergency.</div>
+                  <div className="text-xs mt-1">Please choose an option to proceed:</div>
+                  <div className="mt-3 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <Select value={selectedNewPractitioner} onValueChange={setSelectedNewPractitioner}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Assign another available staff" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {practitioners
+                            .filter(p => p.available)
+                            .filter(p => getPractitionerSpecialization(selectedAppointment.practitioner) === p.specialization)
+                            .map(p => (
+                              <SelectItem key={p.name} value={p.name}>{p.name} ({p.specialization})</SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <Button disabled={!selectedNewPractitioner} onClick={() => handleConfirmReassign(selectedAppointment.id)}>Reassign</Button>
+                    </div>
+                    <Button variant="destructive" onClick={() => handleCancelTreatment(selectedAppointment.id)}>Cancel Treatment</Button>
+                  </div>
+                </div>
+              )}
               <div className="space-y-4">
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Client</h4>

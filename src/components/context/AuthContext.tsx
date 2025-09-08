@@ -18,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  register: (params: { firstName: string; lastName: string; email: string; password: string; role?: UserRole }) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -57,12 +58,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
+  const [registeredUsers, setRegisteredUsers] = useState<any[]>([]);
   
   // Check for existing session on initial load
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
+    const storedRegisteredUsers = localStorage.getItem('registeredUsers');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+    }
+    if (storedRegisteredUsers) {
+      try {
+        setRegisteredUsers(JSON.parse(storedRegisteredUsers));
+      } catch {
+        setRegisteredUsers([]);
+      }
     }
     setIsLoading(false);
   }, []);
@@ -75,9 +85,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await new Promise(resolve => setTimeout(resolve, 800));
     
     // Find matching user
-    const foundUser = sampleUsers.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
+    const foundUser =
+      sampleUsers.find(
+        u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      ) ||
+      registeredUsers.find(
+        u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      );
     
     if (foundUser) {
       // Remove password before storing in state
@@ -92,6 +106,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
+  // Register function
+  const register: AuthContextType['register'] = async ({ firstName, lastName, email, password, role }) => {
+    setIsLoading(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Check existing in sample or registered users
+      const emailExists =
+        sampleUsers.some(u => u.email.toLowerCase() === email.toLowerCase()) ||
+        registeredUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
+
+      if (emailExists) {
+        setIsLoading(false);
+        return { success: false, message: 'Email already in use' };
+      }
+
+      const newUser = {
+        id: String(Date.now()),
+        name: `${firstName} ${lastName}`.trim(),
+        email,
+        password,
+        role: role || ('client' as UserRole),
+        avatar: userPicture,
+      };
+
+      const nextUsers = [...registeredUsers, newUser];
+      setRegisteredUsers(nextUsers);
+      localStorage.setItem('registeredUsers', JSON.stringify(nextUsers));
+
+      // Auto-login the new user (store without password)
+      const { password: _pw, ...safeUser } = newUser;
+      setUser(safeUser);
+      localStorage.setItem('user', JSON.stringify(safeUser));
+      setIsLoading(false);
+      return { success: true };
+    } catch (e) {
+      setIsLoading(false);
+      return { success: false, message: 'Registration failed' };
+    }
+  };
+
   // Logout function
   const logout = () => {
     setUser(null);
@@ -104,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     isAuthenticated: !!user,
     login,
+    register,
     logout,
     isLoading
   };
